@@ -1523,6 +1523,10 @@ module.exports = {
             output.stats.speed += Math.floor(obsidian / 20);
         }
 
+        // Apply Tarantula Helmet bonus of 1% Crit Damage per 10 Strength
+        if(items.armor.filter(a => objectPath.has(a, 'tag.ExtraAttributes.id') && a.tag.ExtraAttributes.id == ('TARANTULA_HELMET')).length == 1)
+            output.stats.crit_damage += Math.floor(output.stats.strength / 10);
+
         output.stats.effective_health = getEffectiveHealth(output.stats.health, output.stats.defense);
 
         output.weapon_stats = {};
