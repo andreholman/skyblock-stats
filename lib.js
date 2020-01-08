@@ -11,6 +11,10 @@ const rarity_order = ['special', 'legendary', 'epic', 'rare', 'uncommon', 'commo
 
 const max_souls = 190;
 
+function replaceAll(target, search, replacement){
+    return target.split(search).join(replacement);
+}
+
 function getLevelByXp(xp, runecrafting){
     let xp_table = runecrafting ? runecrafting_xp : leveling_xp;
 
@@ -183,7 +187,6 @@ async function getItems(base64){
         if(objectPath.has(item, 'tag.display.Name'))
             item.display_name = module.exports.getRawLore(item.tag.display.Name);
 
-
         if(objectPath.has(item, 'display_name')){
             if(item.display_name == 'Water Bottle')
                 item.Damage = 17;
@@ -316,6 +319,11 @@ async function getItems(base64){
             }
         }
 
+        // Add snow canon and blaster to weapons
+        if(objectPath.has(item, 'tag.ExtraAttributes.id') && ['SNOW_CANNON', 'SNOW_BLASTER'].includes(item.tag.ExtraAttributes.id))
+            item.type = 'bow';
+
+        // Workaround for detecting item types if another language is set by the player on Hypixel
         if(objectPath.has(item, 'tag.ExtraAttributes.id') && item.tag.ExtraAttributes.id != 'ENCHANTED_BOOK'){
             if(objectPath.has(item, 'tag.ExtraAttributes.enchantments')){
                 if('sharpness' in item.tag.ExtraAttributes.enchantments
@@ -767,6 +775,9 @@ const bonus_stats = {
         },
         15: {
             health: 3
+        },
+        20: {
+            health: 4
         },
         26: {
             health: 5
@@ -1610,6 +1621,32 @@ module.exports = {
         // Stats shouldn't go into negative
         for(let stat in output.stats)
             output.stats[stat] = Math.max(0, output.stats[stat]);
+
+        let killsDeaths = [];
+
+        for(let stat in profile.stats){
+            if(stat.startsWith("kills_"))
+                killsDeaths.push({ type: 'kills', entityId: stat.replace("kills_", ""), amount: profile.stats[stat] });
+
+            if(stat.startsWith("deaths_"))
+                killsDeaths.push({ type: 'deaths', entityId: stat.replace("deaths_", ""), amount: profile.stats[stat] });
+        }
+
+        killsDeaths.forEach(stat => {
+            let entityName = "";
+            let { entityId } = stat;
+            entityId.split("_").forEach((split, index) => {
+                entityName += split.charAt(0).toUpperCase() + split.slice(1);
+
+                if(index < entityId.split("_").length - 1)
+                    entityName += " ";
+            });
+
+            stat.entityName = entityName;
+        });
+
+        output.kills = killsDeaths.filter(a => a.type == 'kills').sort((a, b) => b.amount - a.amount);
+        output.deaths = killsDeaths.filter(a => a.type == 'deaths').sort((a, b) => b.amount - a.amount);
 
         return output;
     }
